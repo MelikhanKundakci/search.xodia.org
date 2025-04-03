@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XODIA Search</title>
+
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Google Fonts (Inter) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet"
+    >
+
+    <!-- Favicon (Emoji) -->
+    <link
+        rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🃏</text></svg>"
+    >
+
+    <!-- Custom Styles -->
+    <style>
+      /* Define CSS Variables for theming */
+      :root {
+          --ygo-amber: #fbbf24;
+          --ygo-dark-bg: #111827;
+          --ygo-card-bg: #1f2937;
+          --ygo-border: #374151;
+          --ygo-text-light: #e5e7eb;
+          --ygo-text-muted: #9ca3af;
+          --ban-forbidden-bg: #b91c1c;
+          --ban-limited-bg: #d97706;
+          --ban-semi-limited-bg: #eab308;
+          --ban-unlimited-bg: #4b5563;
+          --ban-text: #ffffff;
+          --scale-bg: #15803d;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: var(--ygo-dark-bg);
+        color: var(--ygo-text-light);
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh; /* Ensure footer stays at bottom */
+      }
+
+      .content-wrapper {
+        flex-grow: 1; /* Allow content to push footer down */
+      }
+
+      /* Custom Scrollbar */
+      ::-webkit-scrollbar { width: 10px; height: 10px; }
+      ::-webkit-scrollbar-track { background: #2d3748; border-radius: 10px; }
+      ::-webkit-scrollbar-thumb { background: #4a5568; border-radius: 10px; border: 2px solid #2d3748; }
+      ::-webkit-scrollbar-thumb:hover { background: #718096; }
+
+      /* Modal Styling */
+      .modal-backdrop {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background-color: rgba(0, 0, 0, 0.8); display: flex; justify-content: center;
+        align-items: center; z-index: 50; opacity: 0; visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease; backdrop-filter: blur(5px);
+      }
+      .modal-backdrop.active { opacity: 1; visibility: visible; }
+      .modal-content {
+        background-color: var(--ygo-card-bg); padding: 1rem 1.5rem 1.5rem 1.5rem;
+        border-radius: 0.75rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+        width: 90%; max-width: 800px; max-height: 90vh; overflow-y: auto;
+        transform: scale(0.95) translateY(10px); transition: transform 0.3s ease, opacity 0.3s ease;
+        color: var(--ygo-text-light); border: 1px solid var(--ygo-border); position: relative;
+      }
+      @media (min-width: 640px) { .modal-content { padding: 1.5rem 2rem 2rem 2rem; } }
+      #helpModal .modal-content { max-width: 650px; }
+      .modal-backdrop.active .modal-content { transform: scale(1) translateY(0); opacity: 1; }
+      .modal-close-btn {
+        position: absolute; top: 0.75rem; right: 0.75rem; background: var(--ygo-border);
+        color: var(--ygo-text-muted); border: none; border-radius: 50%; width: 2.25rem;
+        height: 2.25rem; font-size: 1.25rem; line-height: 1; cursor: pointer;
+        display: flex; justify-content: center; align-items: center;
+        transition: background-color 0.2s ease, color 0.2s ease; z-index: 60;
+      }
+      .modal-close-btn:hover { background-color: #4b5563; color: var(--ygo-text-light); }
+      .modal-section { margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--ygo-border); }
+      .modal-section h3 {
+        font-size: 1.125rem; font-weight: 600; margin-bottom: 0.75rem; color: var(--ygo-amber);
+        display: flex; align-items: center; gap: 0.5rem;
+      }
+      .modal-section h3 svg { width: 1em; height: 1em; stroke-width: 2.5; }
+
+      /* Card Grid and Card Styling */
+      #cardGrid { gap: 1rem 0.75rem; }
+      @media (min-width: 640px) { #cardGrid { gap: 1.25rem 1rem; } }
+      .card {
+        background-color: var(--ygo-card-bg); border-radius: 0.5rem; overflow: hidden;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        transform: translateY(0); transition: transform 0.3s ease, box-shadow 0.3s ease;
+        cursor: pointer; border: 1px solid var(--ygo-border); position: relative;
+        display: flex; flex-direction: column;
+      }
+      .card:hover { transform: translateY(-4px); box-shadow: 0 0 15px 5px rgba(251, 191, 36, 0.2); }
+      .card img { display: block; width: 100%; height: auto; aspect-ratio: 658 / 960; background-color: #2d3748; }
+      .card-name {
+          padding: 0.3rem 0.5rem; text-align: center; font-size: 0.7rem;
+          font-weight: 500; color: var(--ygo-text-muted);
+          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+          border-bottom: 1px solid var(--ygo-border);
+      }
+
+      /* Modal Card Image */
+      .card-image-modal { max-width: 200px; height: auto; border-radius: 0.5rem; margin-bottom: 1rem; border: 1px solid #4b5563; }
+      @media (min-width: 768px) { .card-image-modal { max-width: 280px; } }
+
+      /* Related Card Image */
+      .related-card-image { width: 90px; height: auto; border-radius: 0.375rem; cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; border: 1px solid #4b5563; }
+      @media (min-width: 640px) { .related-card-image { width: 100px; } }
+      .related-card-image:hover { transform: scale(1.05); box-shadow: 0 0 8px 2px rgba(251, 191, 36, 0.3); }
+
+      /* Stat Box (Attribute, Level, ATK, DEF, Scale) */
+      .stat-box { background-color: #374151; padding: 0.3rem 0.8rem; border-radius: 0.375rem; font-size: 0.8rem; font-weight: 500; margin-right: 0.5rem; margin-bottom: 0.5rem; display: inline-block; white-space: nowrap; border: 1px solid #4b5563; }
+      .stat-box-scale { background-color: var(--scale-bg); }
+
+      /* SVG Icon Buttons (Filter, Help) */
+      .icon-button {
+          position: absolute; top: 50%; transform: translateY(-50%); background: none;
+          border: none; color: var(--ygo-text-muted); cursor: pointer; padding: 0.5rem;
+          line-height: 1; transition: color 0.2s ease; display: flex; align-items: center;
+          justify-content: center;
+      }
+      .icon-button svg { width: 1.5rem; height: 1.5rem; stroke-width: 2; }
+      .icon-button:hover { color: var(--ygo-amber); }
+      .help-button { right: 0.5rem; } .filter-button { right: 3.5rem; }
+      @media (min-width: 640px) { .help-button { right: 1rem; } .filter-button { right: 4rem; } }
+
+      /* SVG Search Icon (in Input) */
+      .search-icon { position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); color: var(--ygo-text-muted); pointer-events: none; }
+      @media (min-width: 640px) { .search-icon { left: 1rem; } }
+      .search-icon svg { width: 1.25rem; height: 1.25rem; stroke-width: 2.5; }
+      @media (min-width: 640px) { .search-icon svg { width: 1.5rem; height: 1.5rem; } }
+
+      /* Set Info Styling */
+      .set-info { font-size: 0.875rem; color: var(--ygo-text-muted); background-color: #2d3748; padding: 0.5rem 0.75rem; border-radius: 0.375rem; margin-bottom: 0.5rem; border: 1px solid var(--ygo-border); }
+      .set-info strong { color: var(--ygo-text-light); }
+      .set-info .clickable-set { cursor: pointer; text-decoration: none; color: var(--ygo-amber); transition: color 0.2s; border-bottom: 1px dotted transparent; }
+      .set-info .clickable-set:hover { color: #f59e0b; border-bottom-color: #f59e0b; }
+
+      /* Marketplace Link Styling */
+      .marketplace-link { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.1rem; background-color: #374151; color: var(--ygo-text-light); border-radius: 0.375rem; text-decoration: none; transition: background-color 0.2s ease, transform 0.1s ease; font-size: 0.875rem; border: 1px solid #4b5563; }
+      .marketplace-link:hover { background-color: #4b5563; transform: translateY(-1px); }
+      .marketplace-link svg { width: 1em; height: 1em; stroke-width: 2.5;}
+
+      /* Rulings Link Styling */
+      .rulings-external-link { display: inline-flex; align-items: center; gap: 0.3rem; color: var(--ygo-amber); text-decoration: none; font-size: 0.8rem; transition: color 0.2s, text-decoration 0.2s; }
+      @media (min-width: 640px) { .rulings-external-link { font-size: 0.9rem; } }
+      .rulings-external-link:hover { color: #f59e0b; text-decoration: underline; }
+      .rulings-external-link svg { width: 0.9em; height: 0.9em; stroke-width: 2.5; margin-right: 0.1rem; }
+
+      /* Filter Panel Styling */
+      #filterPanel { background-color: var(--ygo-card-bg); border: 1px solid var(--ygo-border); border-radius: 0.5rem; margin-top: 0.75rem; max-height: 0; overflow: hidden; transition: max-height 0.4s ease-out, padding 0.4s ease-out, opacity 0.4s ease-out, border-color 0.4s ease-out; opacity: 0; visibility: hidden; padding: 0 1.5rem; border-color: transparent; }
+      #filterPanel.active { max-height: 1500px; opacity: 1; visibility: visible; padding: 1.5rem; border-color: var(--ygo-border); }
+      .filter-section h3 { font-size: 1rem; font-weight: 600; color: var(--ygo-amber); margin-bottom: 1rem; border-bottom: 1px solid var(--ygo-border); padding-bottom: 0.75rem; }
+      .filter-group label:not(.checkbox-label) { display: block; margin-bottom: 0.3rem; font-size: 0.8rem; font-weight: 500; color: var(--ygo-text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+      .filter-group select, .filter-group input[type="text"], .filter-group input[type="number"] { width: 100%; background-color: var(--ygo-dark-bg); border: 1px solid var(--ygo-border); color: var(--ygo-text-light); border-radius: 0.375rem; padding: 0.6rem 0.75rem; font-size: 0.875rem; transition: border-color 0.2s, box-shadow 0.2s; }
+      .filter-group select:focus, .filter-group input:focus { outline: none; border-color: var(--ygo-amber); box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.3); }
+      .checkbox-group label.checkbox-label { display: flex; align-items: center; font-size: 0.875rem; color: var(--ygo-text-light); margin-bottom: 0.6rem; cursor: pointer; padding: 0.2rem 0; }
+      #resetFiltersButton { padding: 0.6rem 1rem; background-color: #4b5563; border: 1px solid #6b7280; color: white; border-radius: 0.375rem; transition: background-color 0.2s, transform 0.1s; font-size: 0.875rem; }
+      #resetFiltersButton:hover { background-color: #6b7280; transform: translateY(-1px); }
+      .input-with-operator { display: flex; align-items: center; gap: 0.25rem; }
+/* Angepasste Operatoren-Auswahl */
+.operator-select {
+    flex-shrink: 0; 
+    width: auto; 
+    min-width: 2.5rem; /* Reduziert von 3.5rem */
+    max-width: 3rem; /* Neue Eigenschaft zur Begrenzung der Breite */
+    padding-left: 0.3rem; /* Reduziert von 0.5rem */
+    padding-right: 1.5rem; /* Reduziert von 1.75rem */
+    margin-right: 0;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.15rem center; /* Angepasst von 0.25rem */
+    background-repeat: no-repeat; 
+    background-size: 1em 1em; /* Reduziert von 1.25em */
+    font-size: 0.8rem; /* Kleinere Schriftgröße */
+}
+
+/* Angepasste Input-Container */
+.input-with-operator {
+    display: flex; 
+    align-items: center; 
+    gap: 0.25rem;
+}
+
+.input-with-operator input[type="number"] {
+    min-width: 0; 
+    flex-grow: 1;
+    flex-basis: 70%; /* Gibt dem Eingabefeld mehr Grundplatz */
+}
+
+
+      /* Infinite Scroll Loader */
+      #infiniteScrollLoading { text-align: center; padding: 3rem; display: none; }
+      #infiniteScrollLoading .spinner { display: inline-block; width: 2.5rem; height: 2.5rem; border: 5px solid rgba(251, 191, 36, 0.2); border-radius: 50%; border-top-color: var(--ygo-amber); animation: spin 1s ease-in-out infinite; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      .hidden-section { display: none; }
+      .filter-checkbox-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.5rem 1rem; }
+
+      /* Heading Styling */
+      .main-heading {
+          cursor: pointer; transition: color 0.2s ease, text-shadow 0.3s ease;
+          text-shadow: 0 0 5px rgba(251, 191, 36, 0.2);
+          background: linear-gradient(to right, #fde68a, var(--ygo-amber), #fde68a);
+          -webkit-background-clip: text; background-clip: text; color: transparent;
+      }
+      .main-heading:hover { color: transparent; text-shadow: 0 0 15px rgba(251, 191, 36, 0.5); }
+
+      /* Banlist & Price Styling */
+      .ban-status { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; color: var(--ban-text); text-transform: uppercase; letter-spacing: 0.05em; margin-left: 0.5rem; }
+      .ban-status-forbidden { background-color: var(--ban-forbidden-bg); }
+      .ban-status-limited { background-color: var(--ban-limited-bg); }
+      .ban-status-semi-limited { background-color: var(--ban-semi-limited-bg); }
+      .ban-status-unlimited { background-color: var(--ban-unlimited-bg); color: var(--ygo-text-muted); }
+      .price-section span { color: var(--ygo-text-muted); }
+      .price-section strong { color: var(--ygo-text-light); font-weight: 600; }
+
+      .probability-button {
+    background-color: var(--ygo-amber);
+    transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+.probability-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(251, 191, 36, 0.4);
+}
+.probability-button:active {
+    transform: translateY(0);
+}
+
+    </style>
+</head>
+<body class="p-2 sm:p-4 md:p-6 lg:p-8">
+
+    <div class="content-wrapper">
+        <div class="container mx-auto px-2 sm:px-4">
+            <h1
+                id="mainHeading"
+                class="main-heading text-3xl sm:text-4xl md:text-5xl font-extrabold mb-4 sm:mb-6 md:mb-8 text-center tracking-tight">
+                XODIA Search
+            </h1>
+
+            <div class="mb-4 sm:mb-6 max-w-3xl mx-auto">
+                 <div class="relative mb-3">
+                    <span class="search-icon" aria-hidden="true">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                    </span>
+                    <input
+                        type="text"
+                        id="searchInput"
+                        placeholder='Search Name, Text or use keywords...'
+                        class="w-full px-4 py-3 pl-10 sm:pl-12 pr-24 sm:pr-32 rounded-lg border border-gray-600 bg-gray-700/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent shadow-md text-sm sm:text-base"
+                    >
+                    <button
+                        id="filterToggleButton"
+                        class="icon-button filter-button"
+                        aria-label="Toggle Filters"
+                        aria-expanded="false"
+                        title="Toggle Filters">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line>
+                            <line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line>
+                            <line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line>
+                            <line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line>
+                            <line x1="17" y1="16" x2="23" y2="16"></line>
+                        </svg>
+                    </button>
+                    <button
+                        id="helpButton"
+                        class="icon-button help-button"
+                        aria-label="Search Help"
+                        title="Search Help">
+                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                    </button>
+                 </div>
+                <div id="filterPanel">
+                    <div class="filter-section">
+                        <div class="filter-group">
+                            <label for="primaryCategoryFilter">Primary Category</label>
+                            <select id="primaryCategoryFilter">
+                                <option value="">Any</option>
+                                <option value="Monster">Monster</option>
+                                <option value="Spell">Spell</option>
+                                <option value="Trap">Trap</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="secondaryTypeSection" class="filter-section hidden-section">
+                         <h3 id="secondaryTypeHeader">Secondary Type</h3>
+                         <div id="secondaryTypeCheckboxes" class="checkbox-group filter-checkbox-grid"></div>
+                    </div>
+                    <div id="monsterDetailsSection" class="filter-section hidden-section">
+                         <h3>Monster Details</h3>
+                         <div class="grid grid-cols-1 md:grid-cols-3 gap-x-6 gap-y-4">
+                              <div class="md:col-span-3">
+                                   <label>Attribute</label>
+                                   <div id="attributeCheckboxes" class="filter-checkbox-grid checkbox-group">
+                                        <label class="checkbox-label"><input type="checkbox" name="monsterAttribute" value="DARK"> DARK</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="monsterAttribute" value="DIVINE"> DIVINE</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="monsterAttribute" value="EARTH"> EARTH</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="monsterAttribute" value="FIRE"> FIRE</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="monsterAttribute" value="LIGHT"> LIGHT</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="monsterAttribute" value="WATER"> WATER</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="monsterAttribute" value="WIND"> WIND</label>
+                                   </div>
+                              </div>
+                              <div class="md:col-span-3">
+                                   <label>Type</label>
+                                   <div id="raceCheckboxes" class="filter-checkbox-grid checkbox-group">
+                                        <label class="checkbox-label"><input type="checkbox" name="monsterRace" value="Aqua"> Aqua</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="monsterRace" value="Beast"> Beast</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="monsterRace" value="Beast-Warrior"> Beast-Warrior</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="monsterRace" value="Creator-God"> Creator-God</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="monsterRace" value="Cyberse"> Cyberse</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="monsterRace" value="Dinosaur"> Dinosaur</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="monsterRace" value="Divine-Beast"> Divine-Beast</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="monsterRace" value="Dragon"> Dragon</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="monsterRace" value="Fairy"> Fairy</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="monsterRace" value="Fiend"> Fiend</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="monsterRace" value="Fish"> Fish</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="monsterRace" value="Illusion"> Illusion</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="monsterRace" value="Insect"> Insect</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="monsterRace" value="Machine"> Machine</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="monsterRace" value="Plant"> Plant</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="monsterRace" value="Psychic"> Psychic</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="monsterRace" value="Pyro"> Pyro</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="monsterRace" value="Reptile"> Reptile</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="monsterRace" value="Rock"> Rock</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="monsterRace" value="Sea Serpent"> Sea Serpent</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="monsterRace" value="Spellcaster"> Spellcaster</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="monsterRace" value="Thunder"> Thunder</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="monsterRace" value="Warrior"> Warrior</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="monsterRace" value="Winged Beast"> Winged Beast</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="monsterRace" value="Wyrm"> Wyrm</label>
+                                        <label class="checkbox-label"><input type="checkbox" name="monsterRace" value="Zombie"> Zombie</label>
+                                   </div>
+                              </div>
+                              <div class="filter-group">
+                                   <label for="levelFilter">Level/Rank/Link</label>
+                                   <div class="input-with-operator">
+                                        <select id="levelOperator" class="operator-select"> <option value="eq" selected>=</option> <option value="gte">>=</option> <option value="lte"><=</option> <option value="gt">></option> <option value="lt"><</option> </select>
+                                        <input type="number" id="levelFilter" min="0" placeholder="Any">
+                                   </div>
+                              </div>
+                              <div class="filter-group">
+                                   <label for="atkFilter">ATK</label>
+                                   <div class="input-with-operator">
+                                       <select id="atkOperator" class="operator-select"> <option value="eq" selected>=</option> <option value="gte">>=</option> <option value="lte"><=</option> <option value="gt">></option> <option value="lt"><</option> </select>
+                                       <input type="number" id="atkFilter" min="0" placeholder="Any">
+                                   </div>
+                              </div>
+                              <div class="filter-group">
+                                   <label for="defFilter">DEF</label>
+                                   <div class="input-with-operator">
+                                       <select id="defOperator" class="operator-select"> <option value="eq" selected>=</option> <option value="gte">>=</option> <option value="lte"><=</option> <option value="gt">></option> <option value="lt"><</option> </select>
+                                       <input type="number" id="defFilter" min="0" placeholder="Any">
+                                   </div>
+                              </div>
+                         </div>
+                    </div>
+                    <div class="filter-section">
+                         <label for="effectTextFilter" class="filter-group">Effect Text</label>
+                         <div class="filter-group"> <input type="text" id="effectTextFilter" placeholder="Contains text..." class="mt-1"> </div>
+                    </div>
+                    <div class="mt-6 text-right"> <button id="resetFiltersButton" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition duration-200 text-sm"> Reset Filters </button> </div>
+               </div>
+               <div class="flex justify-center mt-2 mb-4">
+                <a href="https://xodia.org" target="_blank" rel="noopener noreferrer" 
+                   class="probability-button bg-amber-600 hover:bg-amber-700 text-white font-medium py-2 px-4 rounded-lg 
+                          transition duration-200 flex items-center gap-2 shadow-md border border-amber-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 24 24" fill="none" 
+                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 3v18h18"></path>
+                        <path d="M18 12V8"></path>
+                        <path d="M21 3h-7v7"></path>
+                        <path d="M13 7l9-9"></path>
+                        <path d="M7 17l4-4"></path>
+                        <path d="M17 17l-4-4"></path>
+                    </svg>
+                    Probability Calculator
+                </a>
+            </div>
+            
+            </div>
+
+            <div id="loadingIndicator" class="text-center py-12"> <p class="text-xl text-gray-400 mb-4">Summoning cards...</p> <div class="mt-4 w-16 h-16 border-4 border-dashed border-amber-500 rounded-full animate-spin mx-auto"></div> </div>
+            <div id="errorIndicator" class="text-center py-12 text-red-400 hidden"> <p class="text-xl font-semibold">Failed to contact the Card Database!</p> <p id="errorMessage" class="text-sm mt-2 mb-4"></p> <button id="retryButton" class="mt-4 px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition duration-200 font-semibold"> Retry </button> </div>
+            <div id="cardGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-4 md:gap-5"></div>
+            <div id="noResults" class="text-center py-12 text-gray-400 hidden"> <p class="text-2xl"> banished</p> <p class="text-xl mt-2">No cards found matching criteria.</p> </div>
+            <div id="infiniteScrollLoading"><div class="spinner"></div></div>
+        </div>
+    </div>
+
+    <footer class="text-center p-4 mt-8 text-xs text-gray-500 border-t border-gray-700">
+        Powered by the <a href="https://ygoprodeck.com/api-guide/" target="_blank" rel="noopener noreferrer" class="text-amber-400 hover:text-amber-300 underline">YGOPRODECK API</a> with ❤️
+        <span class="mx-2">|</span>
+        Created by <a href="https://www.youtube.com/@dermelooo" target="_blank" rel="noopener noreferrer" class="text-amber-400 hover:text-amber-300 underline">derMelooo</a>
+        <span class="mx-2">|</span>
+        Hosted on <a href="https://github.com/features/pages" target="_blank" rel="noopener noreferrer" class="text-amber-400 hover:text-amber-300 underline">GitHub Pages</a>
+    </footer>
+
+    <div id="cardModal" class="modal-backdrop"> <div class="modal-content"> <button id="modalCloseButton" class="modal-close-btn" aria-label="Close" title="Close"> × </button> <div id="modalBody" class="space-y-4 mb-4"></div> <div id="marketplaceLinksSection" class="modal-section"> <h3><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="inline-block align-middle mr-1"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>Marketplace Links</h3> <div id="marketplaceLinks" class="flex flex-wrap gap-2 sm:gap-3"></div> </div> <div id="setInfoSection" class="modal-section"> <h3><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="inline-block align-middle mr-1"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>Sets & Rarities (TCG)</h3> <div id="setInfoList" class="max-h-40 sm:max-h-48 overflow-y-auto space-y-2 pr-2"></div> <p id="noSetInfo" class="text-gray-400 hidden mt-2">No TCG set information found.</p> </div> <div id="relatedCardsSection" class="modal-section"> <h3><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="inline-block align-middle mr-1"><path d="M17 14V2H7l-5 5v15h7"></path><path d="M14 8H7"></path><path d="M14 12H7"></path><path d="M11 16H7"></path><path d="M19.4 14.6a2 2 0 1 1-2.8-2.8 2 2 0 0 1 2.8 2.8z"></path><path d="M16.6 17.4a2 2 0 1 1-2.8-2.8 2 2 0 0 1 2.8 2.8z"></path><path d="M19.4 20.4a2 2 0 1 1-2.8-2.8 2 2 0 0 1 2.8 2.8z"></path></svg>Related Cards (Archetype)</h3> <div id="relatedCardsGrid" class="flex flex-wrap gap-2 sm:gap-3"></div> <p id="relatedCardsLoading" class="text-gray-400 hidden">Loading related cards...</p> <p id="relatedCardsError" class="text-red-400 hidden">Error loading related cards.</p> <p id="noRelatedCards" class="text-gray-400 hidden">No related cards found for this archetype.</p> </div> </div> </div>
+
+    <div id="helpModal" class="modal-backdrop"> <div class="modal-content"> <button id="helpModalCloseButton" class="modal-close-btn" aria-label="Close"> × </button> <h2 class="text-2xl font-bold mb-4 text-amber-400">Search Help</h2> <p class="mb-4 text-gray-300 text-sm sm:text-base"> Search by card name or effect text. Refine your search using keywords and the filter panel below. Combine multiple keywords/filters for precise results. Searching very common words in effect text (like 'negate' or 'destroy') might be slow or lead to API errors; combine with other filters for best results. </p> <h3 class="text-lg font-semibold mb-2 text-amber-300">Keyword Search (in top bar):</h3> <ul class="list-disc list-inside space-y-2 text-gray-300 mb-4 text-sm sm:text-base"> <li><strong>Name:</strong> <code class="bg-gray-700 px-1 py-0.5 rounded text-xs sm:text-sm">Blue-Eyes</code></li> <li><strong>Keywords:</strong> <code class="bg-gray-700 px-1 py-0.5 rounded text-xs sm:text-sm">attribute:LIGHT</code>, <code class="bg-gray-700 px-1 py-0.5 rounded text-xs sm:text-sm">type:Spellcaster</code>, <code class="bg-gray-700 px-1 py-0.5 rounded text-xs sm:text-sm">level:4</code>, <code class="bg-gray-700 px-1 py-0.5 rounded text-xs sm:text-sm">atk:>=2000</code>, <code class="bg-gray-700 px-1 py-0.5 rounded text-xs sm:text-sm">def:<1000</code>, <code class="bg-gray-700 px-1 py-0.5 rounded text-xs sm:text-sm">text:"special summon"</code>, <code class="bg-gray-700 px-1 py-0.5 rounded text-xs sm:text-sm">archetype:"Blue-Eyes"</code>, <code class="bg-gray-700 px-1 py-0.5 rounded text-xs sm:text-sm">set:"Metal Raiders"</code>, <code class="bg-gray-700 px-1 py-0.5 rounded text-xs sm:text-sm">race:Dragon</code>. </li> </ul> <h3 class="text-lg font-semibold mb-2 text-amber-300">Filter Panel:</h3> <p class="mb-4 text-gray-300 text-sm sm:text-base"> Use the panel for detailed filtering. Select a Primary Category, then choose specific Secondary Types (multiple allowed). For Monsters, select multiple Attributes/Types, use operators (=, >, <, >=, <=) for Level, ATK, DEF. Use the Effect Text box to search descriptions. Filters from the panel are combined with any text or keywords in the search bar. </p> <p class="text-gray-300 text-sm sm:text-base"> <strong>Example Combined Search:</strong> Select "Monster", check "Fusion" and "Effect", check "DARK" and "LIGHT", set Level to >= 4, and type "destroy" in the Effect Text box. This finds DARK or LIGHT, Fusion or Effect Monsters of Level 4 or higher containing "destroy" in their text. </p> </div> </div>
+
+    <script>
+        // --- DOM References ---
+        const mainHeading = document.getElementById('mainHeading'); const searchInput = document.getElementById('searchInput'); const cardGrid = document.getElementById('cardGrid'); const loadingIndicator = document.getElementById('loadingIndicator'); const errorIndicator = document.getElementById('errorIndicator'); const errorMessage = document.getElementById('errorMessage'); const retryButton = document.getElementById('retryButton'); const noResults = document.getElementById('noResults'); const infiniteScrollLoading = document.getElementById('infiniteScrollLoading'); const filterToggleButton = document.getElementById('filterToggleButton'); const filterPanel = document.getElementById('filterPanel'); const primaryCategoryFilter = document.getElementById('primaryCategoryFilter'); const secondaryTypeSection = document.getElementById('secondaryTypeSection'); const secondaryTypeHeader = document.getElementById('secondaryTypeHeader'); const secondaryTypeCheckboxes = document.getElementById('secondaryTypeCheckboxes'); const monsterDetailsSection = document.getElementById('monsterDetailsSection'); const attributeCheckboxes = document.getElementById('attributeCheckboxes'); const raceCheckboxes = document.getElementById('raceCheckboxes'); const levelOperator = document.getElementById('levelOperator'); const levelFilter = document.getElementById('levelFilter'); const atkOperator = document.getElementById('atkOperator'); const atkFilter = document.getElementById('atkFilter'); const defOperator = document.getElementById('defOperator'); const defFilter = document.getElementById('defFilter'); const effectTextFilter = document.getElementById('effectTextFilter'); const resetFiltersButton = document.getElementById('resetFiltersButton'); const cardModal = document.getElementById('cardModal'); const modalBody = document.getElementById('modalBody'); const modalCloseButton = document.getElementById('modalCloseButton'); const marketplaceLinksSection = document.getElementById('marketplaceLinksSection'); const marketplaceLinks = document.getElementById('marketplaceLinks'); const setInfoSection = document.getElementById('setInfoSection'); const setInfoList = document.getElementById('setInfoList'); const noSetInfo = document.getElementById('noSetInfo'); const relatedCardsSection = document.getElementById('relatedCardsSection'); const relatedCardsGrid = document.getElementById('relatedCardsGrid'); const relatedCardsLoading = document.getElementById('relatedCardsLoading'); const relatedCardsError = document.getElementById('relatedCardsError'); const noRelatedCards = document.getElementById('noRelatedCards'); const helpButton = document.getElementById('helpButton'); const helpModal = document.getElementById('helpModal'); const helpModalCloseButton = document.getElementById('helpModalCloseButton');
+
+        // --- State ---
+        let allCards = []; let currentDetailCard = null; let graphicalFilters = {}; let textFilters = {}; let debounceTimer; let currentOffset = 0; let isLoadingMore = false; let hasMoreCards = true;
+
+        // --- Constants ---
+        const API_BASE_URL = 'https://db.ygoprodeck.com/api/v7/cardinfo.php'; const CARDS_PER_INITIAL_LOAD = 20; const CARDS_PER_SUBSEQUENT_LOAD = 15; const DEBOUNCE_DELAY = 400; const SCROLL_THRESHOLD = 400;
+        const USE_SELF_HOSTED_IMAGES = true; const SELF_HOSTED_IMAGE_BASE_URL_SMALL = './card_images/image_small/'; const SELF_HOSTED_IMAGE_BASE_URL_LARGE = './card_images/image_normal/'; const PLACEHOLDER_IMAGE_URL = 'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==';
+        const operatorApiMap = { '=': 'eq', '>=': 'gte', '<=': 'lte', '>': 'gt', '<': 'lt' };
+
+        // --- Filter Definitions ---
+        const secondaryTypeMappings = { Monster: [ { label: "Normal", value: "Normal Monster" }, { label: "Effect", value: "Effect Monster" }, { label: "Ritual", value: "Ritual Monster" }, { label: "Fusion", value: "Fusion Monster" }, { label: "Synchro", value: "Synchro Monster" }, { label: "XYZ", value: "XYZ Monster" }, { label: "Link", value: "Link Monster" }, { label: "Pendulum Normal", value: "Pendulum Normal Monster" }, { label: "Pendulum Effect", value: "Pendulum Effect Monster" }, { label: "Pendulum Tuner", value: "Pendulum Tuner Effect Monster" }, { label: "Pendulum Ritual", value: "Pendulum Effect Ritual Monster" }, { label: "Pendulum Fusion", value: "Pendulum Effect Fusion Monster" }, { label: "Pendulum Synchro", value: "Pendulum Effect Synchro Monster" }, { label: "Pendulum XYZ", value: "Pendulum Effect XYZ Monster" }, { label: "Token", value: "Token" }, { label: "Skill", value: "Skill Card"} ], Spell: [ { label: "Normal", value: "Spell Card", race: "Normal" }, { label: "Continuous", value: "Spell Card", race: "Continuous" }, { label: "Equip", value: "Spell Card", race: "Equip" }, { label: "Field", value: "Spell Card", race: "Field" }, { label: "Quick-Play", value: "Spell Card", race: "Quick-Play" }, { label: "Ritual", value: "Spell Card", race: "Ritual" } ], Trap: [ { label: "Normal", value: "Trap Card", race: "Normal" }, { label: "Continuous", value: "Trap Card", race: "Continuous" }, { label: "Counter", value: "Trap Card", race: "Counter" } ] };
+
+        // --- Image Error Handling ---
+        function handleImageError(imgElement, apiImageUrl, placeholderUrl) {
+            if (imgElement.dataset.fallbackAttempted === 'true') { console.warn(`Fallback image failed for ${imgElement.alt}, using placeholder.`); imgElement.src = placeholderUrl; imgElement.onerror = null; }
+            else { imgElement.dataset.fallbackAttempted = 'true'; const fallbackUrl = apiImageUrl ? apiImageUrl : placeholderUrl; console.warn(`Local image failed for ${imgElement.alt}, trying fallback: ${fallbackUrl}`); imgElement.src = fallbackUrl; }
+        }
+
+        // --- API & Data ---
+        async function fetchCards(offset = 0, isInitialLoad = false) {
+            if (isLoadingMore && !isInitialLoad) return null; if (!hasMoreCards && !isInitialLoad) return null; isLoadingMore = true; const cardsToRequest = isInitialLoad ? CARDS_PER_INITIAL_LOAD : CARDS_PER_SUBSEQUENT_LOAD;
+            if (isInitialLoad) { loadingIndicator.style.display = 'block'; cardGrid.innerHTML = ''; noResults.style.display = 'none'; errorIndicator.style.display = 'none'; allCards = []; } else { infiniteScrollLoading.style.display = 'block'; }
+            const params = buildApiParams(offset, cardsToRequest); const url = `${API_BASE_URL}?${params.toString()}`; console.log(`Fetching ${cardsToRequest} cards:`, url);
+            try { const response = await fetch(url); if (response.status === 400) { console.log("API returned 400."); hasMoreCards = false; if (isInitialLoad && allCards.length === 0) { noResults.textContent = "No cards found matching criteria."; noResults.style.display = 'block'; } return []; } if (!response.ok) { let eMsg=`HTTP Error! ${response.status}`; try { const eData=await response.json(); if(eData && eData.error) eMsg=`API Error: ${eData.error}`; } catch(e){} throw new Error(eMsg); } const data = await response.json(); const fetchedCards = data.data || []; if (fetchedCards.length < cardsToRequest) { hasMoreCards = false; } return fetchedCards; }
+            catch (error) { console.error('Error fetching cards:', error); errorMessage.textContent = error.message; if (isInitialLoad) { errorIndicator.style.display = 'block'; loadingIndicator.style.display = 'none'; } else { console.error("Failed to load more cards."); hasMoreCards = false; } return null; }
+            finally { isLoadingMore = false; if (isInitialLoad) loadingIndicator.style.display = 'none'; infiniteScrollLoading.style.display = 'none'; }
+        }
+
+        function buildApiParams(offset = 0, numCards) {
+             const params = new URLSearchParams(); const combinedFilters = { ...textFilters, ...graphicalFilters }; params.set('num', numCards); params.set('offset', offset); params.set('misc', 'yes');
+             if (combinedFilters.name) params.set('fname', combinedFilters.name);
+             let apiTypes = []; if (combinedFilters.primaryCategory) { if (combinedFilters.secondaryTypes && combinedFilters.secondaryTypes.length > 0) { combinedFilters.secondaryTypes.forEach(st => { if ((combinedFilters.primaryCategory === 'Spell' || combinedFilters.primaryCategory === 'Trap') && st.race) { apiTypes.push(`${st.race} ${st.value}`); } else { apiTypes.push(st.value); } }); } else { if (combinedFilters.primaryCategory === 'Spell') apiTypes.push('Spell Card'); if (combinedFilters.primaryCategory === 'Trap') apiTypes.push('Trap Card'); } } if (combinedFilters.type) apiTypes.push(combinedFilters.type); if (apiTypes.length > 0) params.set('type', [...new Set(apiTypes)].join(','));
+             let attributes = combinedFilters.attributes ? [...combinedFilters.attributes] : []; if (combinedFilters.attribute) attributes.push(combinedFilters.attribute); if (attributes.length > 0) params.set('attribute', [...new Set(attributes)].join(','));
+             let races = combinedFilters.races ? [...combinedFilters.races] : []; if (combinedFilters.race) races.push(combinedFilters.race); if (races.length > 0) params.set('race', [...new Set(races)].join(','));
+             const levelFilterData = graphicalFilters.level; if (levelFilterData && levelFilterData.value !== '') { const apiOp = levelFilterData.operator || 'eq'; params.set('level', `${apiOp}${levelFilterData.value}`); } else if (textFilters.level?.value) { const apiOp = operatorApiMap[textFilters.level.operator] || 'eq'; params.set('level', `${apiOp}${textFilters.level.value}`); } else if (textFilters.rank?.value) { const apiOp = operatorApiMap[textFilters.rank.operator] || 'eq'; params.set('level', `${apiOp}${textFilters.rank.value}`); } else if (textFilters.link?.value) { const apiOp = operatorApiMap[textFilters.link.operator] || 'eq'; params.set('level', `${apiOp}${textFilters.link.value}`); }
+             const atkFilterData = graphicalFilters.atk; if (atkFilterData && atkFilterData.value !== '') { const apiOp = atkFilterData.operator || 'eq'; params.set('atk', `${apiOp}${atkFilterData.value}`); } else if (textFilters.atk) { const apiOp = operatorApiMap[textFilters.atk.operator] || 'eq'; params.set('atk', `${apiOp}${textFilters.atk.value}`); }
+             const defFilterData = graphicalFilters.def; if (defFilterData && defFilterData.value !== '') { const apiOp = defFilterData.operator || 'eq'; params.set('def', `${apiOp}${defFilterData.value}`); } else if (textFilters.def) { const apiOp = operatorApiMap[textFilters.def.operator] || 'eq'; params.set('def', `${apiOp}${textFilters.def.value}`); }
+             const effectText = combinedFilters.effectText || textFilters.text; if (effectText) params.set('desc', effectText);
+             if (combinedFilters.archetype) params.set('archetype', combinedFilters.archetype);
+             if (combinedFilters.set) params.set('cardset', combinedFilters.set);
+             params.set('sort', 'new'); return params;
+        }
+
+        async function fetchCardsById(cardId) {
+             const url = `${API_BASE_URL}?id=${cardId}&misc=yes`; try { const response = await fetch(url); if (!response.ok) throw new Error(`HTTP Error fetching ID! Status: ${response.status}`); const data = await response.json(); console.log('Data from fetchCardsById:', data); return (data.data && data.data.length > 0) ? data.data[0] : null; } catch (error) { console.error(`Error fetching card ${cardId}:`, error); return null; }
+        }
+
+        // --- UI Rendering ---
+        function displayCards(cards, append = false) {
+             if (!append) { cardGrid.innerHTML = ''; noResults.textContent = (cards.length === 0 && currentOffset === 0) ? "No cards found matching criteria." : ""; noResults.style.display = (cards.length === 0 && currentOffset === 0) ? 'block' : 'none'; }
+             if (!Array.isArray(cards)) { console.error("Invalid card data:", cards); if (!append) { noResults.textContent = "Error displaying data."; noResults.style.display = 'block'; } return; }
+             if (append && cards.length === 0) { hasMoreCards = false; infiniteScrollLoading.style.display = 'none'; return; }
+             cards.forEach(card => {
+                 const cardElement = document.createElement('div'); cardElement.className = 'card group'; cardElement.dataset.cardId = card.id;
+                 let imageUrl = PLACEHOLDER_IMAGE_URL; const apiImageUrl = card.card_images?.[0]?.image_url || null; const finalPlaceholder = `https://placehold.co/300x438/1f2937/e5e7eb?text=${encodeURIComponent(card.name)}`;
+                 if (USE_SELF_HOSTED_IMAGES) { imageUrl = `${SELF_HOSTED_IMAGE_BASE_URL_LARGE}${card.id}.jpg`; } else if (apiImageUrl) { imageUrl = apiImageUrl; } else { imageUrl = finalPlaceholder; }
+                 const onErrorString = USE_SELF_HOSTED_IMAGES ? `handleImageError(this, ${apiImageUrl ? `'${apiImageUrl}'` : null}, '${finalPlaceholder}')` : `this.src='${finalPlaceholder}'; this.onerror=null;`;
+                 cardElement.innerHTML = ` <div class="card-name"> ${card.name} </div> <img src="${imageUrl}" alt="${card.name}" class="w-full h-auto object-cover" loading="lazy" onerror="${onErrorString.replace(/"/g, '"').replace(/\n/g, '')}"> `;
+                 cardElement.addEventListener('click', () => showCardDetails(card.id)); cardGrid.appendChild(cardElement);
+             });
+        }
+
+        function populateSecondaryTypes() {
+             const primaryCategory = primaryCategoryFilter.value; secondaryTypeCheckboxes.innerHTML = ''; if (primaryCategory && secondaryTypeMappings[primaryCategory]) { secondaryTypeHeader.textContent = `Secondary ${primaryCategory} Type`; const types = secondaryTypeMappings[primaryCategory]; types.forEach(type => { const label = document.createElement('label'); label.className = 'checkbox-label'; const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.value = type.value; checkbox.dataset.race = type.race || ''; checkbox.id = `type-${type.label.replace(/\s+/g, '-')}`; checkbox.addEventListener('change', handleFilterChange); label.htmlFor = checkbox.id; label.appendChild(checkbox); label.appendChild(document.createTextNode(` ${type.label}`)); secondaryTypeCheckboxes.appendChild(label); }); }
+        }
+
+        function updateFilterSectionsVisibility() {
+            const primaryCategory = primaryCategoryFilter.value; populateSecondaryTypes(); secondaryTypeSection.classList.toggle('hidden-section', !primaryCategory); monsterDetailsSection.classList.toggle('hidden-section', primaryCategory !== 'Monster');
+        }
+
+        // --- Filtering Logic ---
+        function parseSearchQuery(query) {
+             const filters = { name: '' }; const keywords = ['attribute', 'type', 'level', 'rank', 'link', 'atk', 'def', 'text', 'archetype', 'set', 'race']; const operatorMap = { '=': '=', '>=': '>=', '<=': '<=', '>': '>', '<': '<' }; const queryTrimmed = query.trim(); const parts = queryTrimmed.match(/(?:[^\s"]+|"[^"]*")+/g) || []; let nameParts = [];
+             parts.forEach(part => { const lowerPart = part.toLowerCase(); let matchedKeyword = false; for (const keyword of keywords) { if (lowerPart.startsWith(keyword + ':')) { let value = part.substring(keyword.length + 1); if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1); if ((keyword === 'atk' || keyword === 'def')) { let operator = '='; let numValueStr = value; const opMatch = value.match(/^(>=|<=|>|<)/); if(opMatch) { operator = opMatch[0]; numValueStr = value.substring(operator.length); } const numValue = parseInt(numValueStr, 10); if (!isNaN(numValue)) filters[keyword] = { operator: operatorMap[operator], value: numValue }; } else if (['level', 'rank', 'link'].includes(keyword)) { const numValue = parseInt(value, 10); if (!isNaN(numValue)) filters[keyword] = { operator: '=', value: numValue }; } else { filters[keyword] = value; } matchedKeyword = true; break; } } if (!matchedKeyword) nameParts.push(part.replace(/"/g, '')); });
+             filters.name = nameParts.join(' ').trim(); return filters;
+        }
+
+        function updateGraphicalFiltersState() {
+             graphicalFilters = { primaryCategory: primaryCategoryFilter.value, secondaryTypes: [], attributes: [], races: [], level: { operator: levelOperator.value, value: levelFilter.value.trim() }, atk: { operator: atkOperator.value, value: atkFilter.value.trim() }, def: { operator: defOperator.value, value: defFilter.value.trim() }, effectText: effectTextFilter.value.trim().toLowerCase() }; secondaryTypeCheckboxes.querySelectorAll('input:checked').forEach(cb => { graphicalFilters.secondaryTypes.push({ value: cb.value, race: cb.dataset.race }); }); attributeCheckboxes.querySelectorAll('input:checked').forEach(cb => { graphicalFilters.attributes.push(cb.value); }); raceCheckboxes.querySelectorAll('input:checked').forEach(cb => { graphicalFilters.races.push(cb.value); });
+        }
+
+        function resetAllFilters() {
+             searchInput.value = ''; primaryCategoryFilter.value = ""; attributeCheckboxes.querySelectorAll('input:checked').forEach(cb => cb.checked = false); raceCheckboxes.querySelectorAll('input:checked').forEach(cb => cb.checked = false); levelFilter.value = ""; levelOperator.value = "eq"; atkFilter.value = ""; atkOperator.value = "eq"; defFilter.value = ""; defOperator.value = "eq"; effectTextFilter.value = "";
+             updateFilterSectionsVisibility(); updateGraphicalFiltersState(); handleFilterChange();
+        }
+
+        function handleFilterChange() {
+            clearTimeout(debounceTimer); debounceTimer = setTimeout(() => { textFilters = parseSearchQuery(searchInput.value.trim()); updateGraphicalFiltersState(); triggerSearch(); }, DEBOUNCE_DELAY);
+        }
+
+        async function triggerSearch() {
+            currentOffset = 0; hasMoreCards = true; const initialResults = await fetchCards(0, true); if (initialResults) { allCards = initialResults; displayCards(allCards, false); } else if (initialResults === null) { cardGrid.innerHTML = ''; noResults.style.display = 'none'; }
+        }
+
+        // --- Modal ---
+        function formatBanlistStatus(status) {
+            if (!status) { return `<span class="ban-status ban-status-unlimited">Unlimited</span>`; } const lowerStatus = status.toLowerCase();
+            switch (lowerStatus) { case 'forbidden': case 'banned': return `<span class="ban-status ban-status-forbidden">Forbidden</span>`; case 'limited': case 'limited 1': return `<span class="ban-status ban-status-limited">Limited</span>`; case 'semi-limited': case 'limited 2': return `<span class="ban-status ban-status-semi-limited">Semi-Limited</span>`; default: return `<span class="ban-status ban-status-unlimited">Unlimited</span>`; }
+        }
+
+        async function showCardDetails(cardId) {
+             currentDetailCard = allCards.find(card => card.id == cardId); if (!currentDetailCard) { const specificCardData = await fetchCardsById(cardId); if (specificCardData) { currentDetailCard = specificCardData; } else { modalBody.innerHTML = '<p class="text-red-400 font-semibold">Card details could not be loaded.</p>'; setInfoList.innerHTML = ''; relatedCardsGrid.innerHTML = ''; marketplaceLinks.innerHTML = ''; cardModal.classList.add('active'); return; } }
+             let largeImageUrl = PLACEHOLDER_IMAGE_URL; const apiLargeImageUrl = currentDetailCard.card_images?.[0]?.image_url || null; if (USE_SELF_HOSTED_IMAGES) { largeImageUrl = `${SELF_HOSTED_IMAGE_BASE_URL_LARGE}${currentDetailCard.id}.jpg`; } else if (apiLargeImageUrl) { largeImageUrl = apiLargeImageUrl; } else { largeImageUrl = `https://placehold.co/300x438/1f2937/e5e7eb?text=${encodeURIComponent(currentDetailCard.name)}`; } const largeOnErrorPlaceholder = `https://placehold.co/300x438/1f2937/e5e7eb?text=${encodeURIComponent(currentDetailCard.name)}`; const modalOnErrorLogic = `handleImageError(this, ${apiLargeImageUrl ? `'${apiLargeImageUrl}'` : null}, '${largeOnErrorPlaceholder}')`;
+             let attributeHtml = currentDetailCard.attribute ? `<span class="stat-box bg-gray-600">${currentDetailCard.attribute}</span>` : '';
+             let levelRankHtml = ''; let scaleHtml = ''; const cardType = currentDetailCard.type || '';
+             if (cardType.includes('Link Monster') && currentDetailCard.linkval !== undefined) { levelRankHtml = `<span class="stat-box bg-blue-700">Link-${currentDetailCard.linkval}</span>`; } else if (currentDetailCard.level !== undefined) { if (cardType.includes('XYZ Monster')) { levelRankHtml = `<span class="stat-box bg-black text-white border border-gray-500">Rank ${currentDetailCard.level}</span>`; } else { levelRankHtml = `<span class="stat-box bg-yellow-600">Level ${currentDetailCard.level}</span>`; } } if (currentDetailCard.scale !== undefined) { scaleHtml = `<span class="stat-box stat-box-scale">Scale ${currentDetailCard.scale}</span>`; }
+             let atkHtml = ''; if (currentDetailCard.atk !== undefined) { atkHtml = `<span class="stat-box bg-red-700">ATK / ${currentDetailCard.atk < 0 ? '?' : currentDetailCard.atk}</span>`; }
+             let defHtml = ''; if (currentDetailCard.def !== undefined && !cardType.includes('Link Monster')) { defHtml = `<span class="stat-box bg-blue-600">DEF / ${currentDetailCard.def < 0 ? '?' : currentDetailCard.def}</span>`; }
+             let linkMarkerHtml = ''; if (currentDetailCard.linkmarkers) { linkMarkerHtml = `<span class="stat-box bg-indigo-600">Arrows: ${currentDetailCard.linkmarkers.join(', ')}</span>`; }
+             let rulingsLinkHtml = ''; const konamiId = currentDetailCard.misc_info?.[0]?.konami_id; if (konamiId) { const externalRulingsUrl = `https://db.ygoresources.com/card#${konamiId}`; rulingsLinkHtml = `<a href="${externalRulingsUrl}" target="_blank" rel="noopener noreferrer" class="rulings-external-link mb-3" title="View official rulings on ygoresources.com"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="inline-block align-middle"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg><span>View Official Rulings</span></a>`; } else { rulingsLinkHtml = `<p class="text-sm text-gray-500 mb-3">Official rulings link unavailable.</p>`; }
+             const prices = currentDetailCard.card_prices?.[0]; let priceHtml = '<p class="text-sm text-gray-500">Prices not available.</p>'; if (prices) { priceHtml = `<div class="price-section text-sm grid grid-cols-2 gap-x-4 gap-y-1 mt-2 mb-3"><span>Cardmarket:</span> <strong>€${prices.cardmarket_price || 'N/A'}</strong><span>TCGplayer:</span> <strong>$${prices.tcgplayer_price || 'N/A'}</strong><span>eBay:</span> <strong>$${prices.ebay_price || 'N/A'}</strong><span>Amazon:</span> <strong>$${prices.amazon_price || 'N/A'}</strong></div>`; }
+             const tcgStatus = formatBanlistStatus(currentDetailCard.banlist_info?.ban_tcg); const ocgStatus = formatBanlistStatus(currentDetailCard.banlist_info?.ban_ocg); const banlistHtml = `<div class="text-sm mt-2 mb-3"><span class="font-semibold">TCG:</span>${tcgStatus}<span class="font-semibold ml-4">OCG:</span>${ocgStatus}</div>`;
+             modalBody.innerHTML = `<div class="flex flex-col md:flex-row gap-4 sm:gap-6"><div class="flex-shrink-0 mx-auto md:mx-0"><img src="${largeImageUrl}" alt="${currentDetailCard.name}" class="card-image-modal" onerror="${modalOnErrorLogic.replace(/"/g, '"').replace(/\n/g, '')}"></div><div class="flex-grow"><h2 class="text-xl sm:text-2xl font-bold mb-1 text-amber-400">${currentDetailCard.name}</h2> ${rulingsLinkHtml} <div class="flex flex-wrap items-center mb-3 text-sm">${attributeHtml}<span class="stat-box">${currentDetailCard.race} / ${currentDetailCard.type}</span>${levelRankHtml}${scaleHtml}</div> ${atkHtml || defHtml || linkMarkerHtml ? `<div class="flex flex-wrap items-center mb-3 text-sm">${atkHtml} ${defHtml} ${linkMarkerHtml}</div>` : ''} ${banlistHtml} ${priceHtml} <p class="text-gray-300 mb-4 whitespace-pre-wrap text-sm leading-relaxed">${currentDetailCard.desc}</p> ${currentDetailCard.archetype ? `<p class="text-xs text-gray-400">Archetype: <span class="font-semibold text-gray-300">${currentDetailCard.archetype}</span></p>` : ''} </div></div>`;
+             marketplaceLinks.innerHTML = ''; const cardNameEncoded = encodeURIComponent(currentDetailCard.name); const tcgPlayerUrl = `https://www.tcgplayer.com/search/yugioh/product?productLineName=yugioh&q=${cardNameEncoded}&view=grid`; const cardMarketUrl = `https://www.cardmarket.com/en/YuGiOh/Products/Singles?searchString=${cardNameEncoded}`; marketplaceLinks.innerHTML = `<a href="${cardMarketUrl}" target="_blank" rel="noopener noreferrer" class="marketplace-link"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><span>Cardmarket (EU)</span></a> <a href="${tcgPlayerUrl}" target="_blank" rel="noopener noreferrer" class="marketplace-link"><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><span>TCGplayer (US)</span></a>`; marketplaceLinksSection.style.display = 'block';
+             setInfoList.innerHTML = ''; if (currentDetailCard.card_sets && currentDetailCard.card_sets.length > 0) { currentDetailCard.card_sets.sort((a, b) => a.set_name.localeCompare(b.set_name)).forEach(set => { const setElement = document.createElement('div'); setElement.className = 'set-info'; setElement.innerHTML = `<span class="clickable-set" data-set-name="${encodeURIComponent(set.set_name)}" title="Filter by ${set.set_name}"><strong>${set.set_name}</strong> (${set.set_code})</span> - ${set.set_rarity} ${set.set_rarity_code ? `(${set.set_rarity_code})` : ''}`; setInfoList.appendChild(setElement); }); noSetInfo.style.display = 'none'; setInfoSection.style.display = 'block'; } else { noSetInfo.style.display = 'block'; setInfoSection.style.display = 'none'; }
+             loadAndDisplayRelatedCards(currentDetailCard.archetype);
+             cardModal.classList.add('active');
+        }
+
+        async function loadAndDisplayRelatedCards(archetype) {
+             relatedCardsGrid.innerHTML = ''; relatedCardsLoading.style.display = 'none'; relatedCardsError.style.display = 'none'; noRelatedCards.style.display = 'none'; relatedCardsSection.style.display = 'block'; if (!archetype) { noRelatedCards.textContent = 'Not part of an API-defined archetype.'; noRelatedCards.style.display = 'block'; return; }
+             relatedCardsLoading.style.display = 'block'; try { const relatedUrl = `${API_BASE_URL}?archetype=${encodeURIComponent(archetype)}&misc=yes&num=20&offset=0`; const response = await fetch(relatedUrl); if (!response.ok) { let eMsg=`HTTP Error! ${response.status}`; try { const eData = await response.json(); if (eData.error) eMsg=`API Error: ${eData.error}`; } catch(e) {} if (eMsg.toLowerCase().includes('could not find')) eMsg=`Archetype "${archetype}" not found.`; throw new Error(eMsg); } const data = await response.json(); const rCards = data.data || []; const fCards = rCards.filter(rc => rc.id !== currentDetailCard?.id); if (fCards.length === 0) { noRelatedCards.textContent = `No other cards found in "${archetype}" archetype.`; noRelatedCards.style.display = 'block'; } else { fCards.sort((a, b) => a.name.localeCompare(b.name)).forEach(rc => { const cCard = allCards.find(c => c.id === rc.id); const dCard = cCard || rc; const imgEl = createRelatedCardImage(dCard); relatedCardsGrid.appendChild(imgEl); }); } } catch (error) { console.error('Err loading related:', error); relatedCardsError.textContent = `Error: ${error.message}`; relatedCardsError.style.display = 'block'; noRelatedCards.style.display = 'none'; } finally { relatedCardsLoading.style.display = 'none'; }
+        }
+
+        function createRelatedCardImage(cardData) {
+             const imgElement = document.createElement('img'); let relImageUrl = PLACEHOLDER_IMAGE_URL; const apiRelImageUrl = cardData.card_images?.[0]?.image_url || null; if (USE_SELF_HOSTED_IMAGES) { relImageUrl = `${SELF_HOSTED_IMAGE_BASE_URL_LARGE}${cardData.id}.jpg`; } else if (apiRelImageUrl) { relImageUrl = apiRelImageUrl; } const relOnErrorPlaceholder = USE_SELF_HOSTED_IMAGES ? PLACEHOLDER_IMAGE_URL : `https://placehold.co/300x438/1f2937/e5e7eb?text=N/A`; const relOnErrorLogic = `handleImageError(this, ${apiRelImageUrl ? `'${apiRelImageUrl}'` : null}, '${relOnErrorPlaceholder}')`;
+             imgElement.src = relImageUrl; imgElement.alt = cardData.name; imgElement.title = cardData.name; imgElement.className = 'related-card-image'; imgElement.loading = 'lazy'; imgElement.onerror = function() { eval(relOnErrorLogic.replace(/"/g, '"').replace(/\n/g, '')); }; imgElement.addEventListener('click', () => { showCardDetails(cardData.id); }); return imgElement;
+        }
+
+        // --- Event Listeners ---
+        mainHeading.addEventListener('click', resetAllFilters);
+        searchInput.addEventListener('input', handleFilterChange);
+        filterToggleButton.addEventListener('click', () => { const isActive = filterPanel.classList.toggle('active'); filterToggleButton.setAttribute('aria-expanded', isActive); filterToggleButton.classList.toggle('text-amber-400', isActive); });
+        primaryCategoryFilter.addEventListener('change', () => { updateFilterSectionsVisibility(); handleFilterChange(); });
+        attributeCheckboxes.addEventListener('change', handleFilterChange);
+        raceCheckboxes.addEventListener('change', handleFilterChange);
+        levelOperator.addEventListener('change', handleFilterChange); levelFilter.addEventListener('input', handleFilterChange);
+        atkOperator.addEventListener('change', handleFilterChange); atkFilter.addEventListener('input', handleFilterChange);
+        defOperator.addEventListener('change', handleFilterChange); defFilter.addEventListener('input', handleFilterChange);
+        effectTextFilter.addEventListener('input', handleFilterChange);
+        resetFiltersButton.addEventListener('click', resetAllFilters);
+        modalCloseButton.addEventListener('click', () => cardModal.classList.remove('active'));
+        cardModal.addEventListener('click', (event) => { if (event.target === cardModal) cardModal.classList.remove('active'); });
+        helpButton.addEventListener('click', () => helpModal.classList.add('active'));
+        helpModalCloseButton.addEventListener('click', () => helpModal.classList.remove('active'));
+        helpModal.addEventListener('click', (event) => { if (event.target === helpModal) helpModal.classList.remove('active'); });
+        retryButton.addEventListener('click', () => { errorIndicator.style.display = 'none'; errorMessage.textContent = ''; initialLoad(); });
+        setInfoList.addEventListener('click', (event) => { const target = event.target.closest('.clickable-set'); if (target && target.dataset.setName) { const setName = decodeURIComponent(target.dataset.setName); cardModal.classList.remove('active'); searchInput.value = `set:"${setName}"`; textFilters = parseSearchQuery(searchInput.value); resetAllFilters(); } });
+        window.addEventListener('scroll', () => { if (!isLoadingMore && hasMoreCards && (window.innerHeight + window.scrollY >= document.body.offsetHeight - SCROLL_THRESHOLD)) { loadMoreCards(); } });
+
+        // --- Init & Scroll ---
+        async function loadMoreCards() {
+            const offsetToLoad = currentOffset + (currentOffset === 0 ? CARDS_PER_INITIAL_LOAD : CARDS_PER_SUBSEQUENT_LOAD); const moreCards = await fetchCards(offsetToLoad, false); if (moreCards && moreCards.length > 0) { allCards = [...allCards, ...moreCards]; displayCards(moreCards, true); currentOffset = offsetToLoad; } else { console.log("Scroll check: No more cards or error loading."); }
+        }
+
+        async function initialLoad() {
+            currentOffset = 0; hasMoreCards = true; isLoadingMore = false; textFilters = parseSearchQuery(searchInput.value.trim()); updateGraphicalFiltersState(); updateFilterSectionsVisibility();
+            const initialResults = await fetchCards(0, true);
+            if (initialResults) { allCards = initialResults; displayCards(allCards, false); } else { allCards = []; }
+        }
+
+        document.addEventListener('DOMContentLoaded', initialLoad);
+
+    </script>
+
+</body>
+</html>
